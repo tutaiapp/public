@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Confirmation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.0/umd/index.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .success {
+            color: #27ae60;
+        }
+        .error {
+            color: #e74c3c;
+        }
+        .download-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Email Confirmation</h1>
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Confirming your email...</p>
+        </div>
+        <div id="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Your Supabase configuration
+        const SUPABASE_URL = 'https://sipxjfpopqdlixdetmhr.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpcHhqZnBvcHFkbGl4ZGV0bWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1MzU0ODEsImV4cCI6MjA2MDExMTQ4MX0.n_1wBBql_yqNN8CqKT9p43D2jIZe2S_3pfy5wBNFauk'
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+        async function confirmEmail() {
+            const urlParams = new URLSearchParams(window.location.search)
+            const tokenHash = urlParams.get('token_hash')
+            const type = urlParams.get('type')
+            const redirectType = urlParams.get('redirect_type')
+
+            if (!tokenHash || !type) {
+                showResult('error', 'Invalid confirmation link. Missing required parameters.')
+                return
+            }
+
+            try {
+                const { data, error } = await supabase.auth.verifyOtp({
+                    token_hash: tokenHash,
+                    type: type,
+                })
+
+                if (error) {
+                    throw error
+                }
+
+                if (data?.user) {
+                    showResult('success', `
+                        <h2>✅ Email Confirmed Successfully!</h2>
+                        <p>Your email has been verified. You can now use your account.</p>
+                        <p><strong>What's next?</strong></p>
+                        <p>Open your TutaiMobileApp and sign in with your confirmed account.</p>
+                        <a href="#" class="download-btn" onclick="openApp()">Open Mobile App</a>
+                        <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                            If the app doesn't open automatically, you can manually open it from your device.
+                        </p>
+                    `)
+                } else {
+                    showResult('error', 'Confirmation failed. Please try again.')
+                }
+            } catch (error) {
+                console.error('Confirmation error:', error)
+                showResult('error', `
+                    <h2>❌ Confirmation Failed</h2>
+                    <p>There was an error confirming your email:</p>
+                    <p><em>${error.message}</em></p>
+                    <p>Please try signing up again or contact support if the problem persists.</p>
+                `)
+            }
+        }
+
+        function showResult(type, message) {
+            document.getElementById('loading').style.display = 'none'
+            const resultDiv = document.getElementById('result')
+            resultDiv.innerHTML = `<div class="${type}">${message}</div>`
+            resultDiv.style.display = 'block'
+        }
+
+        function openApp() {
+            // Try to open your mobile app using deep linking
+            // Replace 'tutai://' with your actual app scheme
+            window.location.href = 'tutai://auth/confirmed'
+            
+            // Fallback: provide instructions if deep link doesn't work
+            setTimeout(() => {
+                alert('If the app didn\'t open, please open TutaiMobileApp manually from your device.')
+            }, 2000)
+        }
+
+        // Auto-start confirmation process when page loads
+        document.addEventListener('DOMContentLoaded', confirmEmail)
+    </script>
+</body>
+</html>
