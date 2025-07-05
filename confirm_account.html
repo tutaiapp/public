@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Confirmation</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.0/umd/index.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -39,6 +39,16 @@
         .error {
             color: #e74c3c;
         }
+        .debug {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+            text-align: left;
+        }
         .download-btn {
             display: inline-block;
             padding: 12px 24px;
@@ -62,37 +72,71 @@
             <p>Confirming your email...</p>
         </div>
         <div id="result" style="display: none;"></div>
+        <div id="debug" class="debug" style="display: none;"></div>
     </div>
 
     <script>
+        console.log('Page loaded, starting confirmation process...');
+        
+        // Debug function
+        function addDebugInfo(message) {
+            const debugDiv = document.getElementById('debug');
+            debugDiv.style.display = 'block';
+            debugDiv.innerHTML += `<div>${new Date().toISOString()}: ${message}</div>`;
+            console.log(message);
+        }
+
         // Your Supabase configuration
         const SUPABASE_URL = 'https://sipxjfpopqdlixdetmhr.supabase.co'
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpcHhqZnBvcHFkbGl4ZGV0bWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1MzU0ODEsImV4cCI6MjA2MDExMTQ4MX0.n_1wBBql_yqNN8CqKT9p43D2jIZe2S_3pfy5wBNFauk'
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        addDebugInfo('Supabase URL: ' + SUPABASE_URL);
+        addDebugInfo('Creating Supabase client...');
+
+        let supabase;
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            addDebugInfo('Supabase client created successfully');
+        } catch (error) {
+            addDebugInfo('Error creating Supabase client: ' + error.message);
+            showResult('error', 'Failed to initialize authentication system.');
+            throw error;
+        }
 
         async function confirmEmail() {
-            const urlParams = new URLSearchParams(window.location.search)
-            const tokenHash = urlParams.get('token_hash')
-            const type = urlParams.get('type')
-            const redirectType = urlParams.get('redirect_type')
-
-            if (!tokenHash || !type) {
-                showResult('error', 'Invalid confirmation link. Missing required parameters.')
-                return
-            }
-
             try {
+                addDebugInfo('Starting email confirmation...');
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const tokenHash = urlParams.get('token_hash');
+                const type = urlParams.get('type');
+                
+                addDebugInfo(`Token hash: ${tokenHash ? 'present' : 'missing'}`);
+                addDebugInfo(`Type: ${type}`);
+                addDebugInfo(`Full URL: ${window.location.href}`);
+
+                if (!tokenHash || !type) {
+                    showResult('error', 'Invalid confirmation link. Missing required parameters.');
+                    return;
+                }
+
+                addDebugInfo('Calling supabase.auth.verifyOtp...');
+                
                 const { data, error } = await supabase.auth.verifyOtp({
                     token_hash: tokenHash,
                     type: type,
-                })
+                });
+
+                addDebugInfo(`API Response - Error: ${error ? error.message : 'none'}`);
+                addDebugInfo(`API Response - User: ${data?.user ? 'present' : 'none'}`);
+                addDebugInfo(`API Response - Session: ${data?.session ? 'present' : 'none'}`);
 
                 if (error) {
-                    throw error
+                    throw error;
                 }
 
                 if (data?.user) {
+                    addDebugInfo('Email confirmation successful!');
                     showResult('success', `
                         <h2>✅ Email Confirmed Successfully!</h2>
                         <p>Your email has been verified. You can now use your account.</p>
@@ -102,41 +146,62 @@
                         <p style="margin-top: 20px; font-size: 14px; color: #666;">
                             If the app doesn't open automatically, you can manually open it from your device.
                         </p>
-                    `)
+                    `);
                 } else {
-                    showResult('error', 'Confirmation failed. Please try again.')
+                    addDebugInfo('No user returned from verification');
+                    showResult('error', 'Confirmation completed but no user session was created. Please try logging in manually.');
                 }
             } catch (error) {
-                console.error('Confirmation error:', error)
+                addDebugInfo('Confirmation error: ' + error.message);
+                console.error('Confirmation error:', error);
+                
+                let errorMessage = 'An unexpected error occurred.';
+                
+                if (error.message.includes('expired')) {
+                    errorMessage = 'This confirmation link has expired. Please request a new one.';
+                } else if (error.message.includes('invalid')) {
+                    errorMessage = 'This confirmation link is invalid. Please check your email for the correct link.';
+                } else if (error.message.includes('already')) {
+                    errorMessage = 'This email has already been confirmed. You can now log in to your account.';
+                }
+                
                 showResult('error', `
                     <h2>❌ Confirmation Failed</h2>
-                    <p>There was an error confirming your email:</p>
-                    <p><em>${error.message}</em></p>
+                    <p>${errorMessage}</p>
+                    <p><em>Technical details: ${error.message}</em></p>
                     <p>Please try signing up again or contact support if the problem persists.</p>
-                `)
+                `);
             }
         }
 
         function showResult(type, message) {
-            document.getElementById('loading').style.display = 'none'
-            const resultDiv = document.getElementById('result')
-            resultDiv.innerHTML = `<div class="${type}">${message}</div>`
-            resultDiv.style.display = 'block'
+            document.getElementById('loading').style.display = 'none';
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            resultDiv.style.display = 'block';
         }
 
         function openApp() {
+            addDebugInfo('Attempting to open mobile app...');
             // Try to open your mobile app using deep linking
             // Replace 'tutai://' with your actual app scheme
-            window.location.href = 'tutai://auth/confirmed'
+            window.location.href = 'tutai://auth/confirmed';
             
             // Fallback: provide instructions if deep link doesn't work
             setTimeout(() => {
-                alert('If the app didn\'t open, please open TutaiMobileApp manually from your device.')
-            }, 2000)
+                alert('If the app didn\'t open, please open TutaiMobileApp manually from your device.');
+            }, 2000);
         }
 
-        // Auto-start confirmation process when page loads
-        document.addEventListener('DOMContentLoaded', confirmEmail)
+        // Check if Supabase is loaded
+        if (typeof window.supabase === 'undefined') {
+            addDebugInfo('ERROR: Supabase library not loaded!');
+            showResult('error', 'Authentication system failed to load. Please refresh the page.');
+        } else {
+            addDebugInfo('Supabase library loaded successfully');
+            // Auto-start confirmation process when page loads
+            document.addEventListener('DOMContentLoaded', confirmEmail);
+        }
     </script>
 </body>
 </html>
