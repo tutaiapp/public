@@ -3,184 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Confirmation - TutaiApp</title>
+    <title>Email Confirmation - TutAI</title>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             max-width: 600px;
-            margin: 50px auto;
+            margin: 0 auto;
             padding: 20px;
             text-align: center;
-            background-color: #f5f5f5;
+            background-color: #FAFAFA;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .container {
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: #FFFFFF;
+            padding: 48px 40px;
+            border-radius: 20px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            width: 100%;
         }
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
+            border: 3px solid #EAECEF;
+            border-top: 3px solid #113930;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 48px;
+            height: 48px;
             animation: spin 1s linear infinite;
-            margin: 20px auto;
+            margin: 24px auto;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
         .success {
-            color: #27ae60;
+            color: #1BA77F;
         }
         .error {
-            color: #e74c3c;
-        }
-        .download-btn {
-            display: inline-block;
-            padding: 12px 24px;
-            background-color: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-        }
-        .download-btn:hover {
-            background-color: #2980b9;
+            color: #E11640;
         }
         .logo {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 20px;
-            background: linear-gradient(45deg, #3498db, #2980b9);
-            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 32px;
+            background: linear-gradient(135deg, #113930 0%, #5D867B 100%);
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 24px;
-            font-weight: bold;
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #141B28;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
+        h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #141B28;
+            margin: 24px 0 16px 0;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #6B7280;
+            margin: 8px 0;
+        }
+        .loading-text {
+            color: #9FA8B5;
+            font-size: 16px;
+            margin-top: 16px;
+        }
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .info-card {
+            background: #F2F3F5;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+            text-align: left;
+        }
+        .info-card-title {
+            font-weight: 600;
+            color: #141B28;
+            margin-bottom: 8px;
+        }
+        .info-card-text {
+            color: #6B7280;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .steps {
+            text-align: left;
+            margin: 20px 0;
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 12px 0;
+        }
+        .step-number {
+            background: #113930;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .step-text {
+            color: #49454F;
+            font-size: 15px;
+            line-height: 1.4;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">T</div>
-        <h1>Email Confirmation</h1>
-        <div id="loading">
-            <div class="spinner"></div>
-            <p>Confirming your email...</p>
-        </div>
-        <div id="result" style="display: none;"></div>
+<div class="container">
+    <div class="logo">TutAI</div>
+    <h1>Email Confirmation</h1>
+    <div id="loading">
+        <div class="spinner"></div>
+        <p class="loading-text">Confirming your email address...</p>
     </div>
+    <div id="result" style="display: none;"></div>
+</div>
 
-    <script>
-        // Supabase configuration
-        const SUPABASE_URL = 'https://sipxjfpopqdlixdetmhr.supabase.co'
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpcHhqZnBvcHFkbGl4ZGV0bWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1MzU0ODEsImV4cCI6MjA2MDExMTQ4MX0.n_1wBBql_yqNN8CqKT9p43D2jIZe2S_3pfy5wBNFauk'
-        
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+<script>
+    // Supabase configuration
+    const SUPABASE_URL = 'https://sipxjfpopqdlixdetmhr.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpcHhqZnBvcHFkbGl4ZGV0bWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1MzU0ODEsImV4cCI6MjA2MDExMTQ4MX0.n_1wBBql_yqNN8CqKT9p43D2jIZe2S_3pfy5wBNFauk'
 
-        async function confirmEmail() {
-            try {
-                const urlParams = new URLSearchParams(window.location.search)
-                const tokenHash = urlParams.get('token_hash')
-                const type = urlParams.get('type')
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-                if (!tokenHash || !type) {
-                    showResult('error', `
-                        <h2>❌ Invalid Link</h2>
-                        <p>This confirmation link is missing required information.</p>
-                        <p>Please check your email for the correct confirmation link.</p>
-                    `)
-                    return
-                }
+    async function confirmEmail() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search)
+            const tokenHash = urlParams.get('token_hash')
+            const type = urlParams.get('type')
 
-                const { data, error } = await supabase.auth.verifyOtp({
-                    token_hash: tokenHash,
-                    type: type,
-                })
-
-                if (error) {
-                    throw error
-                }
-
-                if (data?.user) {
-                    showResult('success', `
-                        <h2>✅ Email Confirmed Successfully!</h2>
-                        <p>Your email has been verified. You can now use your account.</p>
-                        <p><strong>What's next?</strong></p>
-                        <p>Open your TutaiApp and sign in with your confirmed account.</p>
-                        <button class="download-btn" onclick="openApp()">Open TutaiApp</button>
-                        <p style="margin-top: 20px; font-size: 14px; color: #666;">
-                            If the app doesn't open automatically, you can manually open it from your device.
-                        </p>
-                    `)
-                } else {
-                    showResult('error', `
-                        <h2>⚠️ Confirmation Incomplete</h2>
-                        <p>Your email was processed but no user session was created.</p>
-                        <p>Please try logging in to your account manually.</p>
-                    `)
-                }
-            } catch (error) {
-                let errorMessage = 'An unexpected error occurred.'
-                
-                if (error.message.includes('expired')) {
-                    errorMessage = 'This confirmation link has expired. Please request a new one.'
-                } else if (error.message.includes('invalid')) {
-                    errorMessage = 'This confirmation link is invalid or has already been used.'
-                } else if (error.message.includes('already')) {
-                    errorMessage = 'This email has already been confirmed. You can now log in to your account.'
-                }
-                
+            if (!tokenHash || !type) {
                 showResult('error', `
-                    <h2>❌ Confirmation Failed</h2>
-                    <p>${errorMessage}</p>
-                    <p style="margin-top: 20px; font-size: 14px; color: #666;">
-                        If you continue to have problems, please contact support.
-                    </p>
+                    <div class="error-icon">❌</div>
+                    <h2>Invalid Link</h2>
+                    <p>This confirmation link is missing required information.</p>
+                    <p>Please check your email for the correct confirmation link.</p>
+                `)
+                return
+            }
+
+            const { data, error } = await supabase.auth.verifyOtp({
+                token_hash: tokenHash,
+                type: type,
+            })
+
+            if (error) {
+                throw error
+            }
+
+            if (data?.user) {
+                showResult('success', `
+                    <div class="success-icon">✅</div>
+                    <h2>Email Confirmed Successfully!</h2>
+                    <p>Your email address has been verified.</p>
+                    
+                    <div class="info-card">
+                        <div class="info-card-title">What's next?</div>
+                        <div class="info-card-text">
+                            You can now go back to the TutAI app and sign in with your confirmed account.
+                        </div>
+                    </div>
+                    
+                    <div class="steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-text">Open the TutAI app on your device</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-text">Go to the Sign In screen</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-text">Enter your email and password to access your account</div>
+                        </div>
+                    </div>
+                `)
+            } else {
+                showResult('error', `
+                    <div class="error-icon">⚠️</div>
+                    <h2>Confirmation Incomplete</h2>
+                    <p>Your email was processed but no user session was created.</p>
+                    <div class="info-card">
+                        <div class="info-card-title">What to do:</div>
+                        <div class="info-card-text">Please return to the TutAI app and try signing in with your account.</div>
+                    </div>
                 `)
             }
-        }
+        } catch (error) {
+            let errorMessage = 'An unexpected error occurred.'
 
-        function showResult(type, message) {
-            document.getElementById('loading').style.display = 'none'
-            const resultDiv = document.getElementById('result')
-            resultDiv.innerHTML = `<div class="${type}">${message}</div>`
-            resultDiv.style.display = 'block'
-        }
+            if (error.message.includes('expired')) {
+                errorMessage = 'This confirmation link has expired. Please request a new one.'
+            } else if (error.message.includes('invalid')) {
+                errorMessage = 'This confirmation link is invalid or has already been used.'
+            } else if (error.message.includes('already')) {
+                errorMessage = 'This email has already been confirmed. You can now log in to your account.'
+            }
 
-        function openApp() {
-            // Try to open your mobile app using deep linking
-            // Replace 'tutai://' with your actual app scheme when you implement it
-            const appScheme = 'tutai://auth/confirmed'
-            
-            // For iOS/Android deep linking
-            window.location.href = appScheme
-            
-            // Fallback for if deep linking isn't set up yet
-            setTimeout(() => {
-                alert('If the app didn\'t open automatically, please open TutaiApp manually from your device.')
-            }, 2000)
-        }
-
-        // Initialize when page loads
-        if (typeof window.supabase === 'undefined') {
             showResult('error', `
-                <h2>❌ System Error</h2>
-                <p>Authentication system failed to load.</p>
-                <p>Please refresh the page and try again.</p>
+                <div class="error-icon">❌</div>
+                <h2>Confirmation Failed</h2>
+                <p>${errorMessage}</p>
+                <div class="info-card" style="margin-top: 24px;">
+                    <div class="info-card-title">Need help?</div>
+                    <div class="info-card-text">If you continue to have problems, please contact our support team.</div>
+                </div>
             `)
-        } else {
-            document.addEventListener('DOMContentLoaded', confirmEmail)
         }
-    </script>
+    }
+
+    function showResult(type, message) {
+        document.getElementById('loading').style.display = 'none'
+        const resultDiv = document.getElementById('result')
+        resultDiv.innerHTML = `<div class="${type}">${message}</div>`
+        resultDiv.style.display = 'block'
+    }
+
+
+    // Initialize when page loads
+    if (typeof window.supabase === 'undefined') {
+        showResult('error', `
+            <div class="error-icon">❌</div>
+            <h2>System Error</h2>
+            <p>Authentication system failed to load.</p>
+            <p>Please refresh the page and try again.</p>
+        `)
+    } else {
+        document.addEventListener('DOMContentLoaded', confirmEmail)
+    }
+</script>
 </body>
 </html>
